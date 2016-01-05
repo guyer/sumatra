@@ -150,7 +150,7 @@ class HttpRecordStore(RecordStore):
         data = serialization.decode_project_data(content)
         return dict((k, data[k]) for k in ("name", "description"))
 
-    def save(self, project_name, record):
+    def save(self, project_name, record, sync=False):
         if not self.has_project(project_name):
             self.create_project(project_name)
         url = "%s%s/%s/" % (self.server_url, project_name, record.label)
@@ -219,7 +219,7 @@ class HttpRecordStore(RecordStore):
 
     @classmethod
     def accepts_uri(cls, uri):
-        return uri[:4] == "http"
+        return (uri[:4] == "http") and not ("api/v1/private" in uri)
 
 
 if have_http:

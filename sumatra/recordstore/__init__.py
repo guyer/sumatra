@@ -9,6 +9,7 @@ Sub-packages/modules
 shelve_store - provides the ShelveRecordStore class
 django_store - provides the DjangoRecordStore class (if Django is installed)
 http_store   - provides the HttpRecordStore class
+http_ddsm   - provides the DDSMRecordStore class
 
 
 :copyright: Copyright 2006-2014 by the Sumatra team, see doc/authors.txt
@@ -26,7 +27,9 @@ except ImportError:
 try:
     import httplib2
     from .http_store import HttpRecordStore
+    from .http_ddsm import DDSMRecordStore
 except ImportError:
+    print "No httplib2..."
     pass
 
 from ..core import registry

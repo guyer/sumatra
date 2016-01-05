@@ -63,7 +63,7 @@ class ShelveRecordStore(RecordStore):
         return self.shelf.keys()
 
     @check_name
-    def save(self, project_name, record):
+    def save(self, project_name, record, sync=False):
         if self.shelf.has_key(project_name):
             records = self.shelf[project_name]
         else:

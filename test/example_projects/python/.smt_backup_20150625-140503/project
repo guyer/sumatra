@@ -1,0 +1,35 @@
+{
+  "default_executable": null, 
+  "default_repository": {
+    "url": "/home/fyc/Documents/Projects/Surf 2015/Ford Scott/sumatra/test/example_projects/python", 
+    "type": "sumatra.versioncontrol._git.GitRepository", 
+    "upstream": null
+  }, 
+  "name": "example-neuron", 
+  "input_datastore": {
+    "root": "/", 
+    "type": "sumatra.datastore.filesystem.FileSystemDataStore"
+  }, 
+  "default_launch_mode": {
+    "working_directory": "/home/fyc/Documents/Projects/Surf 2015/Ford Scott/sumatra/test/example_projects/python", 
+    "type": "sumatra.launch.SerialLaunchMode", 
+    "options": null
+  }, 
+  "record_store": {
+    "type": "sumatra.recordstore.http_ddsm.DDSMRecordStore", 
+    "server_url": "http://127.0.0.1:5100/api/v1/private/3a8d4cc793bd3e5b85c733b523584545991ea74ebe91ff51c7945e10bdc97e40/"
+  }, 
+  "data_store": {
+    "root": "/home/fyc/Documents/Projects/Surf 2015/Ford Scott/sumatra/test/example_projects/python/Data", 
+    "type": "sumatra.datastore.filesystem.FileSystemDataStore"
+  }, 
+  "on_changed": "error", 
+  "data_label": null, 
+  "default_main_file": null, 
+  "label_generator": "timestamp", 
+  "_most_recent": "20150625-132103", 
+  "sumatra_version": "0.7dev", 
+  "allow_command_line_parameters": true, 
+  "timestamp_format": "%Y%m%d-%H%M%S", 
+  "description": ""
+}

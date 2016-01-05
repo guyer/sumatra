@@ -19,13 +19,15 @@ def encode_record(record, indent=None):
     return record2json(record, indent)
 
 
-def encode_project_info(long_name, description):
+def encode_project_info(long_name, description, goals):
     """Encode a Sumatra project as JSON"""
     data = {}
     if long_name:
         data["name"] = long_name
     if description:
         data["description"] = description
+    if goals:
+        data["goals"] = goals
     return json.dumps(data)
 
 

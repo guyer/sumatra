@@ -91,7 +91,12 @@ def record2json(record, indent=None):
         "tags": list(record.tags),  # not sure if tags should be PUT, perhaps have separate URL for this?
         "diff": record.diff,
         "user": record.user,  # added in 0.2
-        "dependencies": [{
+        "dependencies": [],
+        "platforms": [],
+        "repeats": record.repeats,  # added in 0.6
+    }
+    try:
+        data["dependencies"] = [{
             "path": d.path,
             "version": d.version,
             "name": d.name,
@@ -99,8 +104,12 @@ def record2json(record, indent=None):
             "module": d.module,
             "diff": d.diff,
             "source": d.source,  # added in 0.5
-        } for d in record.dependencies],
-        "platforms": [{
+        } for d in record.dependencies]
+    except:
+        data["dependencies"] = []
+
+    try:
+        data["platforms"] = [{
             "system_name": p.system_name,
             "ip_addr": p.ip_addr,
             "architecture_bits": p.architecture_bits,
@@ -110,9 +119,9 @@ def record2json(record, indent=None):
             "release": p.release,
             "network_name": p.network_name,
             "processor": p.processor
-        } for p in record.platforms],
-        "repeats": record.repeats,  # added in 0.6
-    }
+        } for p in record.platforms]
+    except:
+        data["platforms"] = []
     return json.dumps(data, indent=indent)
 
 

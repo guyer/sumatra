@@ -45,6 +45,7 @@ from sumatra.core import TIMESTAMP_FORMAT
 import mimetypes
 import json
 import logging
+import traceback
 
 logger = logging.getLogger("Sumatra")
 
@@ -189,29 +190,66 @@ class Project(object):
         if label is None:
             label = LABEL_GENERATORS[self.label_generator]()
         record = Record(executable, repository, main_file, version, launch_mode,
-                        self.data_store, parameters, input_data, script_args,
+                        self.data_store, self.record_store, parameters, input_data, script_args,
                         label=label, reason=reason, diff=diff,
                         on_changed=self.on_changed,
                         input_datastore=self.input_datastore,
-                        timestamp_format=timestamp_format)
+                        timestamp_format=timestamp_format, project_name=self.name)
+
+        try:
+            self.record_store.save(self.name, record)
+            print "Passed the Project Record initial creation."
+        except:
+            print traceback.print_exc()
+
         if not isinstance(executable, programs.MatlabExecutable):
             record.register(working_copy)
+        try:
+            self.record_store.save(self.name, record, "starting")
+            print "Passed the Project Record starting creation."
+        except:
+            print traceback.print_exc()
         return record
 
     def launch(self, parameters={}, input_data=[], script_args="",
                executable='default', repository='default', main_file='default',
                version='current', launch_mode='default', label=None, reason=None,
-               timestamp_format='default', repeats=None):
+               timestamp_format='default', repeats=None, container=""):
+
+        if container != "":
+            self.record_store.update_project_container(self.name, container)
+        # Creating the record.
         """Launch a new simulation or analysis."""
         record = self.new_record(parameters, input_data, script_args,
                                  executable, repository, main_file, version,
                                  launch_mode, label, reason, timestamp_format)
-        record.run(with_label=self.data_label)
+
+        try:
+            self.record_store.save(self.name, record, "starting")
+            print "Passed the Project Record starting 2 creation."
+        except:
+            print traceback.print_exc()
+        # Running the record.
+        result = record.run(with_label=self.data_label)
+
+        if result:  
+            try:  
+                self.record_store.save(self.name, record, "finished")
+                print "Passed the Project Record finished creation."
+            except:
+                print traceback.print_exc()
+        else:
+            try:
+                self.record_store.save(self.name, record, "crashed")
+                print "Passed the Project Record crashed creation."
+            except:
+                print traceback.print_exc()
+
         if 'matlab' in record.executable.name.lower():
             record.register(record.repository.get_working_copy())
         if repeats:
             record.repeats = repeats
-        self.add_record(record)
+        self.add_record(record, result)
         self.save()
         return record.label
 
@@ -242,7 +280,7 @@ class Project(object):
         version = working_copy.current_version()
         return version, diff
 
-    def add_record(self, record):
+    def add_record(self, record, result=True):
         """Add a simulation or analysis record."""
         success = False
         cnt = 0
@@ -250,21 +288,36 @@ class Project(object):
         sleep_seconds = 5
         while not success and cnt < max_tries:
             try:
-                self.record_store.save(self.name, record)
+                # DDSM
+                # self.record_store.save(self.name, record, "finished") #Modify here. <- Saving the record.
+                if result:    
+                    try:
+                        self.record_store.save(self.name, record, "finished")
+                        print "Passed the Record finished 2 creation."
+                    except:
+                        print traceback.print_exc()
+                else:
+                    try:
+                        self.record_store.save(self.name, record, "crashed")
+                        print "Passed the Record crashed creation."
+                    except:
+                        print traceback.print_exc()
                 success = True
                 self._most_recent = record.label
+                print "Most recent: %s"%self.most_recent
             except (django.db.utils.DatabaseError, sqlite3.OperationalError):
                 print "Failed to save record due to database error. Trying again in {} seconds. (Attempt {}/{})".format(sleep_seconds, cnt, max_tries)
                 time.sleep(sleep_seconds)
                 cnt += 1
         if cnt == max_tries:
             print "Reached maximum number of attempts to save record. Aborting."
-
+    # Get a record.
     def get_record(self, label):
         """Search for a record with the supplied label and return it if found.
            Otherwise return None."""
         return self.record_store.get(self.name, label)
 
+    # Delete a record by label
     def delete_record(self, label, delete_data=False):
         """Delete a record. Return 1 if the record is found.
            Otherwise return 0."""
@@ -273,6 +326,7 @@ class Project(object):
         self.record_store.delete(self.name, label)
         self._most_recent = self.record_store.most_recent(self.name)
 
+    # Delete a record by tag.
     def delete_by_tag(self, tag, delete_data=False):
         """Delete all records with a given tag. Return the number of records deleted."""
         if delete_data:
@@ -282,6 +336,7 @@ class Project(object):
         self._most_recent = self.record_store.most_recent(self.name)
         return n
 
+    # Find records.
     def find_records(self, tags=None, reverse=False):
         records = self.record_store.list(self.name, tags)
         if reverse:
@@ -389,6 +444,7 @@ class Project(object):
         # TODO: also backup the record store, if it is not contained in .smt ?
         return backup_dir
 
+    # Changing the record store.
     def change_record_store(self, new_store):
         """
         Change the record store that is used by this project.

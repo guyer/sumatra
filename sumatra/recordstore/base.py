@@ -22,7 +22,7 @@ class RecordStore(object):
         """Return the names of all projects that have records in this store."""
         raise NotImplementedError
 
-    def save(self, project_name, record):
+    def save(self, project_name, record, sync=False):
         """Store the given record under the given project."""
         raise NotImplementedError
 

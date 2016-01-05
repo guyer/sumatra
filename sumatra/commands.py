@@ -241,6 +241,7 @@ def configure(argv):
 
     project = load_project()
     if args.store:
+        print "Store == %s"%args.store
         new_store = get_record_store(args.store)
         project.change_record_store(new_store)
 
@@ -337,6 +338,7 @@ def run(argv):
     parser.add_argument('-D', '--debug', action='store_true', help="print debugging information.")
     parser.add_argument('-i', '--stdin', help="specify the name of a file that should be connected to standard input.")
     parser.add_argument('-o', '--stdout', help="specify the name of a file that should be connected to standard output.")
+    parser.add_argument('-c', '--container', default="", help="the container image that goes with it.")
 
     args, user_args = parser.parse_known_args(argv)
 
@@ -379,7 +381,7 @@ def run(argv):
                                    label=label, reason=reason,
                                    executable=executable,
                                    main_file=args.main or 'default',
-                                   version=args.version or 'current')
+                                   version=args.version or 'current', container=args.container)
     except (UncommittedModificationsError, MissingInformationError) as err:
         print(err)
         sys.exit(1)

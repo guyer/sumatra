@@ -184,7 +184,7 @@ class DjangoRecordStore(RecordStore):
         models = self._get_models()
         return [project.id for project in models.Project.objects.using(self._db_label).all()]
 
-    def save(self, project_name, record):
+    def save(self, project_name, record, sync=False):
         db_record = self._get_db_record(project_name, record)
         for attr in 'reason', 'duration', 'outcome', 'main_file', 'version', 'timestamp':
             value = getattr(record, attr)

@@ -1,0 +1,4 @@
+EGG-INFO/
+*.param
+Data/*
+.smt

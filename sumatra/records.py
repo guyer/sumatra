@@ -59,10 +59,10 @@ class Record(object):
     valid_name_pattern = r'(?P<label>\w+[\w|\-\.:/\s]*)'
 
     def __init__(self, executable, repository, main_file, version, launch_mode,
-                 datastore, parameters={}, input_data=[], script_arguments='',
+                 datastore, record_store=None, parameters={}, input_data=[], script_arguments='',
                  label=None, reason='', diff='', user='', on_changed='error',
                  input_datastore=None, stdout_stderr='Not launched.',
-                 timestamp=None, timestamp_format=TIMESTAMP_FORMAT):
+                 timestamp=None, timestamp_format=TIMESTAMP_FORMAT, project_name=None):
         # we allow for the timestamp to be set as an argument to allow for
         # distributed/batch simulations on machines with out-of-sync clocks,
         # but only do this if you really know what you're doing, otherwise the
@@ -82,6 +82,7 @@ class Record(object):
         self.script_arguments = script_arguments
         self.launch_mode = launch_mode # a LaunchMode object - basically, run serially or with MPI. If MPI, what configuration
         self.datastore = datastore.copy()
+        self.record_store = record_store
         self.input_datastore = input_datastore or self.datastore
         self.outcome = ''
         self.output_data = []
@@ -91,6 +92,7 @@ class Record(object):
         self.on_changed = on_changed
         self.stdout_stderr = stdout_stderr
         self.repeats = None
+        self.project_name = project_name
 
     def register(self, working_copy):
         """Record information about the environment."""
@@ -143,10 +145,23 @@ class Record(object):
                 data_label = self.label
             else:
                 raise Exception("with_label must be either 'parameters' or 'cmdline'")
+            # DDSM
             self.datastore.root = join(self.datastore.root, self.label)
+
+        try:
+            self.record_store.save(self.project_name, self, "starting")
+            print "Passed the Record Record starting creation."
+        except:
+            print traceback.print_exc()
         # run pre-simulation/analysis tasks, e.g. nrnivmodl
         self.launch_mode.pre_run(self.executable)
+        try:
+            self.record_store.save(self.project_name, self, "starting")
+            print "Passed the Record Record starting 2 creation."
+        except:
+            print traceback.print_exc()
         # Write the executable-specific parameter file
+        # DDSM: the label allow the executable to know where to write.
         script_arguments = self.script_arguments
         if self.parameters:
             parameter_file_basename = self.label.replace("/", "_")
@@ -154,8 +169,27 @@ class Record(object):
             script_arguments = script_arguments.replace("<parameters>", self.parameter_file)
         # Run simulation/analysis
         start_time = time.time()
+        try:
+            self.record_store.save(self.project_name, self, "started")
+            print "Passed the Record Record started creation."
+        except:
+            print traceback.print_exc()
+        #DDSM
         result = self.launch_mode.run(self.executable, self.main_file,
                                       script_arguments, data_label)
+
+        if result:    
+            try:
+                self.record_store.save(self.project_name, self, "finished")
+                print "Passed the Record Record finished creation."
+            except:
+                print traceback.print_exc()
+        else:
+            try:
+                self.record_store.save(self.project_name, self, "crashed")
+                print "Passed the Record Record crashed creation."
+            except:
+                print traceback.print_exc()
         self.duration = time.time() - start_time
 
         # try to get stdout_stderr from launch_mode
@@ -178,6 +212,21 @@ class Record(object):
         if self.parameters and exists(self.parameter_file):
             time.sleep(0.5) # execution of matlab: parameter_file is not always deleted immediately
             os.remove(self.parameter_file)
+
+        if result:
+            try:    
+                self.record_store.save(self.project_name, self, "finished")
+                print "Passed the Record Record finished 2 creation."
+            except:
+                print traceback.print_exc()
+        else:
+            try:
+                self.record_store.save(self.project_name, self, "crashed")
+                print "Passed the Record Record crashed 2 creation."
+            except:
+                print traceback.print_exc()
+
+        return result
 
     def __repr__(self):
         return "Record #%s" % self.label
