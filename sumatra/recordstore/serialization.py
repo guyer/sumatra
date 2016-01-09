@@ -113,6 +113,10 @@ def build_record(data):
                                             creation=datestring_to_datetime(keydata.get("creation", None)),
                                             **keys2str(keydata["metadata"]))
                           for keydata in input_data]
+    if "status" not in data: 
+        # before addition of "status" field, 
+        # records were not stored until finished
+        data["status"] = "finished"
     record = Record(executable, repository, data["main_file"],
                     data["version"], launch_mode, data_store, parameter_set,
                     input_data, data.get("script_arguments", ""),
