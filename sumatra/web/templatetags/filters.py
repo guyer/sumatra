@@ -9,6 +9,7 @@ import os
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.conf import settings
+from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 try:
     from django.utils.encoding import force_bytes, force_text  # Django 1.5+
@@ -25,7 +26,12 @@ def ubreak(text):
     text_out = text.replace("_", "_<wbr>").replace("/", "/<wbr>")
     return mark_safe(text_out)
 
-
+@register.filter
+@stringfilter
+def nbsp(text):
+    text_out = text.replace(" ", "&nbsp;")
+    return mark_safe(text_out)
+    
 @register.filter
 @stringfilter
 def basename(text):
@@ -72,3 +78,23 @@ def restructuredtext(value):
         docutils_settings = getattr(settings, "RESTRUCTUREDTEXT_FILTER_SETTINGS", {})
         parts = publish_parts(source=force_bytes(value), writer_name="html4css1", settings_overrides=docutils_settings)
         return mark_safe(force_text(parts["fragment"]))
+        
+@register.filter(needs_autoescape=True)
+def labelize_status(status, autoescape=True):
+    if autoescape:
+        esc = conditional_escape
+    else:
+        esc = lambda x: x
+    style = {
+        'initialized': "default",
+        'pre_run': "info",
+        'running': "info",
+        'finished': "primary",
+        'failed': "danger",
+        'killed': "warning",
+        'succeeded': "success",
+        'crashed': "danger"
+    }
+    status = status.split()[0].rstrip('.')
+    result = '<span class="label label-%s">%s</span>' % (style[status], esc(status))
+    return mark_safe(result)

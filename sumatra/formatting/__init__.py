@@ -20,10 +20,10 @@ from ..core import component, component_type, get_registered_components
 from functools import reduce
 
 
-fields = ['label', 'timestamp', 'reason', 'outcome', 'duration', 'repository',
-          'main_file', 'version', 'script_arguments', 'executable',
-          'parameters', 'input_data', 'launch_mode', 'output_data',
-          'user', 'tags', 'repeats']
+fields = ['label', 'timestamp', 'status', 'reason', 'outcome', 'duration', 
+          'repository', 'main_file', 'version', 'script_arguments', 
+          'executable', 'parameters', 'input_data', 'launch_mode', 
+          'output_data', 'user', 'tags', 'repeats']
 
 
 @component_type
@@ -557,20 +557,23 @@ def human_readable_duration(seconds):
     '8d 0.12s'
 
     """
-    from math import modf
-    (fractional_part, integer_part) = modf(seconds)
-    (d, rem) = _quotient_remainder(int(integer_part), 60 * 60 * 24)
-    (h, rem) = _quotient_remainder(rem, 60 * 60)
-    (m, rem) = _quotient_remainder(rem, 60)
-    s = rem + fractional_part
+    if seconds is None:
+        return "None"
+    else:
+        from math import modf
+        (fractional_part, integer_part) = modf(seconds)
+        (d, rem) = _quotient_remainder(int(integer_part), 60 * 60 * 24)
+        (h, rem) = _quotient_remainder(rem, 60 * 60)
+        (m, rem) = _quotient_remainder(rem, 60)
+        s = rem + fractional_part
 
-    return ' '.join(
-        templ.format(val)
-        for (val, templ) in [
-            (d, '{0}d'),
-            (h, '{0}h'),
-            (m, '{0}m'),
-            (s, '{0:.2f}s'),
-        ]
-        if val != 0
-    )
+        return ' '.join(
+            templ.format(val)
+            for (val, templ) in [
+                (d, '{0}d'),
+                (h, '{0}h'),
+                (m, '{0}m'),
+                (s, '{0:.2f}s'),
+            ]
+            if val != 0
+        )

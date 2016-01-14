@@ -109,7 +109,7 @@ class RecordDetailView(DetailView):
         if django_settings.READ_ONLY:
             return HttpResponse('It is in read-only mode.')
         record = self.get_object()
-        for attr in ("reason", "outcome", "tags"):
+        for attr in ("reason", "outcome", "tags", "status"):
             value = request.POST.get(attr, None)
             if value is not None:
                 setattr(record, attr, value)
