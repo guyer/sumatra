@@ -39,7 +39,8 @@ logger.addHandler(h)
 logger.debug("STARTING")
 
 modes = ("init", "configure", "info", "run", "list", "delete", "comment", "tag",
-         "repeat", "diff", "help", "export", "upgrade", "sync", "migrate", "version")
+         "repeat", "diff", "help", "export", "upgrade", "sync", "migrate", "version",
+         "status")
 
 store_arg_help = "The argument can take the following forms: (1) `/path/to/sqlitedb` - DjangoRecordStore is used with the specified Sqlite database, (2) `http[s]://location` - remote HTTPRecordStore is used with a remote Sumatra server, (3) `postgres://username:password@hostname/databasename` - DjangoRecordStore is used with specified Postgres database."
 
@@ -717,3 +718,28 @@ def version(argv):
                             description=description)
     args = parser.parse_args(argv)
     print(sumatra.__version__)
+    
+def status(argv):
+    """Change the status of an existing record."""
+    usage = "%(prog)s status [LABEL] STATUS"
+    description = dedent("""\
+      This command is used to change the status of the simulation/analysis. If
+      LABEL is omitted, the status will be changed for the most recent
+      experiment.""")
+    statuses = ('initialized', 'pre_run', 'running', 'finished', 'failed', 
+                'killed', 'succeeded', 'crashed')
+    parser = ArgumentParser(usage=usage,
+                            description=description)
+    parser.add_argument('label', nargs='?', metavar='LABEL', help="the record to which the comment will be added")
+    parser.add_argument('status', metavar='STATUS', help="a string of text, one of %s." % str(statuses))
+    args = parser.parse_args(argv)
+
+    status = args.status.lower()
+    
+    if status not in statuses:
+        raise ValueError("STATUS should be one of %s" % str(statuses))
+        
+    project = load_project()
+    label = args.label or project.most_recent().label
+    project.set_status(label, args.status)
+

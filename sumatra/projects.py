@@ -342,6 +342,11 @@ class Project(object):
         record.tags.remove(tag)
         self.save_record(record)
 
+    def set_status(self, label, status):
+        record = self.record_store.get(self.name, label)
+        record.status = status
+        self.save_record(record)
+
     def compare(self, label1, label2, ignore_mimetypes=[], ignore_filenames=[]):
         record1 = self.record_store.get(self.name, label1)
         record2 = self.record_store.get(self.name, label2)
