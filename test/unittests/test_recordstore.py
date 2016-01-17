@@ -112,6 +112,7 @@ class MockRecord(object):
     def __init__(self, label, timestamp=datetime.now()):
         self.label = label
         self.timestamp = timestamp
+        self.status = "finished"
         self.reason = "because"
         self.duration = 7543.2
         self.outcome = None
@@ -354,7 +355,7 @@ def check_record(record):
                                       "datastore", "outcome", "output_data",
                                       "dependencies", "input_data",
                                       "script_arguments", "stdout_stderr",
-                                      "input_datastore", "repeats"])
+                                      "input_datastore", "repeats", "status"])
 
 class MockCredentials(object):
         credentials = [['domain', 'username', 'password']]

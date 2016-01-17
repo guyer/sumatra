@@ -82,6 +82,7 @@ class MockRecord(object):
     main_file = "main.py"
     version = "42"
     launch_mode = "dummy"
+    status = "finished"
     def __init__(self, label):
         self.label = label
 
@@ -122,6 +123,7 @@ class MockProject(object):
     comments = {}
     tags = {}
     removed_tags = {}
+    statuses = {}
     def __init__(self, **kwargs):
         self.data_store = MockDataStore("/path/to/root")
         self.input_datastore = MockDataStore(".")
@@ -160,6 +162,8 @@ class MockProject(object):
         self.tags[label] = tag
     def remove_tag(self, label, tag):
         self.removed_tags[label] = tag
+    def set_status(self, label, status):
+        self.statuses[label] = status
     def compare(self, label1, label2):
         return False
     def show_diff(self, label1, label2, **kwargs):
@@ -773,6 +777,23 @@ class MigrateCommandTests(unittest.TestCase):
     def test_change_output_datastore(self):
         commands.migrate(["--datapath", "/new/data/path"])
         self.assertEqual(self.prj.record_store.updated, ("datastore.root", "/new/data/path"))
+
+
+class StatusCommandTests(unittest.TestCase):
+
+    def setUp(self):
+        self.prj = MockProject()
+        commands.load_project = lambda: self.prj
+
+    def test_with_no_args(self):
+        self.assertRaises(SystemExit, commands.status, [])
+
+    def test_with_unknown_status(self):
+        self.assertRaises(ValueError, commands.status, ["cromulent"])
+
+    def test_single_arg_interpreted_as_status_on_last_record(self):
+        commands.status(["succeeded"])
+        self.assertEqual(self.prj.statuses["most_recent"], "succeeded")
 
 
 class ArgumentParsingTests(unittest.TestCase):

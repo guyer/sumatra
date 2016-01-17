@@ -124,6 +124,7 @@ class MockRecord(object):
 
     def __init__(self, label):
         self.label = label
+        self.status = "finished"
         self.tags = MockSet()
         self.parameters = {}
         self.repository = MockRepository()
@@ -350,6 +351,11 @@ class TestProject(unittest.TestCase):
         self.assertEqual(proj.repeat("record1")[0], "new_record")
         sumatra.projects.get_working_copy = orig_gwc
         Project.launch = orig_launch
+
+    def test__set_status__should_call_set_on_the_status_attibute_of_the_record(self):
+        proj = Project("test_project",
+                       record_store=MockRecordStore())
+        proj.set_status("foo", "succeeded")
 
 
 class TestModuleFunctions(unittest.TestCase):
