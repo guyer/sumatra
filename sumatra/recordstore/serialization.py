@@ -118,7 +118,8 @@ def build_record(data):
                     input_data, data.get("script_arguments", ""),
                     data["label"], data["reason"], data["diff"],
                     data.get("user", ""), input_datastore=input_datastore,
-                    timestamp=datestring_to_datetime(data["timestamp"]))
+                    timestamp=datestring_to_datetime(data["timestamp"]),
+                    status=data["status"])
     tags = data["tags"]
     if not hasattr(tags, "__iter__"):
         tags = (tags,)

@@ -23,6 +23,7 @@ import time
 import os
 from os.path import join, basename, exists
 import re
+import signal
 from operator import or_
 from functools import reduce
 from .formatting import get_formatter
@@ -62,7 +63,8 @@ class Record(object):
                  datastore, parameters={}, input_data=[], script_arguments='',
                  label=None, reason='', diff='', user='', on_changed='error',
                  input_datastore=None, stdout_stderr='Not launched.',
-                 timestamp=None, timestamp_format=TIMESTAMP_FORMAT):
+                 timestamp=None, timestamp_format=TIMESTAMP_FORMAT, 
+                 status='initialized'):
         # we allow for the timestamp to be set as an argument to allow for
         # distributed/batch simulations on machines with out-of-sync clocks,
         # but only do this if you really know what you're doing, otherwise the
@@ -91,6 +93,9 @@ class Record(object):
         self.on_changed = on_changed
         self.stdout_stderr = stdout_stderr
         self.repeats = None
+        self.status = status
+        self.dependencies = []
+        self.platforms = []
 
     def register(self, working_copy):
         """Record information about the environment."""
@@ -122,7 +127,7 @@ class Record(object):
         # Record information about the current user
         self.user = get_user(working_copy)
 
-    def run(self, with_label=False):
+    def run(self, with_label=False, project=None):
         """
         Launch the simulation or analysis.
 
@@ -144,8 +149,15 @@ class Record(object):
             else:
                 raise Exception("with_label must be either 'parameters' or 'cmdline'")
             self.datastore.root = join(self.datastore.root, self.label)
+
+        self.status = "pre_run"
+        if project:
+            project.save_record(self)
+            logger.debug("Record saved @ pre_run.")
+
         # run pre-simulation/analysis tasks, e.g. nrnivmodl
         self.launch_mode.pre_run(self.executable)
+
         # Write the executable-specific parameter file
         script_arguments = self.script_arguments
         if self.parameters:
@@ -154,8 +166,34 @@ class Record(object):
             script_arguments = script_arguments.replace("<parameters>", self.parameter_file)
         # Run simulation/analysis
         start_time = time.time()
+
+        self.status = "running"
+        self.stdout_stderr = "Not yet captured."
+        if project:
+            project.save_record(self)
+            logger.debug("Record saved @ running.")
+
         result = self.launch_mode.run(self.executable, self.main_file,
                                       script_arguments, data_label)
+        if result == 0:
+            status = "finished"
+            logger.debug("  Run finished.")
+        elif result == -signal.SIGINT:
+            status = "killed"
+            logger.debug("  Run killed.")
+        else:
+            status = "failed"
+            self.outcome = ("Failed with `returncode \
+                            <https://docs.python.org/2/library/subprocess.html\
+                            #subprocess.Popen.returncode>`_ %d" % result)
+            logger.debug("  Run failed.")
+            
+        self.status = status + "..."
+        if project:
+            project.save_record(self)
+            logger.debug("Record saved @ gathering.")
+        self.status = status
+            
         self.duration = time.time() - start_time
 
         # try to get stdout_stderr from launch_mode
@@ -178,6 +216,8 @@ class Record(object):
         if self.parameters and exists(self.parameter_file):
             time.sleep(0.5) # execution of matlab: parameter_file is not always deleted immediately
             os.remove(self.parameter_file)
+                
+        return result
 
     def __repr__(self):
         return "Record #%s" % self.label
@@ -251,6 +291,7 @@ class RecordDifference(object):
         self.script_arguments_differ = recordA.script_arguments != recordB.script_arguments
         self.launch_mode_differs = recordA.launch_mode != recordB.launch_mode
         self.diff_differs = recordA.diff != recordB.diff
+        self.status_differs = recordA.status != recordB.status
 
     def __bool__(self):
         """
@@ -263,7 +304,8 @@ class RecordDifference(object):
         """
         return reduce(or_, (self.executable_differs, self.code_differs,
                             self.input_data_differ, self.script_arguments_differ,
-                            self.parameters_differ, self.output_data_differ))
+                            self.parameters_differ, self.output_data_differ,
+                            self.status_differs))
 
     def __repr__(self):
         s = "RecordDifference(%s, %s):" % (self.recordA.label, self.recordB.label)
@@ -279,6 +321,8 @@ class RecordDifference(object):
             s += 'I'
         if self.script_arguments_differ:
             s += 'S'
+        if self.status_differs:
+            s += 's'
         return s
 
     @property

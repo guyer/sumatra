@@ -218,7 +218,7 @@ class DjangoRecordStore(RecordStore):
 
     def save(self, project_name, record):
         db_record = self._get_db_record(project_name, record)
-        for attr in 'reason', 'duration', 'outcome', 'main_file', 'version', 'timestamp':
+        for attr in 'reason', 'duration', 'outcome', 'main_file', 'version', 'timestamp', 'status':
             value = getattr(record, attr)
             if value is not None:
                 setattr(db_record, attr, value)

@@ -86,6 +86,7 @@ def record2dict(record):
             "type": record.input_datastore.__class__.__name__,
             "parameters": record.input_datastore.__getstate__(),
         },
+        "status": record.status,
         "outcome": record.outcome or "",
         "stdout_stderr": record.stdout_stderr,  # added in 0.4
         "output_data": [{  # added in 0.4 (replaced 'data_key', which was a string)
