@@ -46,6 +46,7 @@ use the ``--long`` option::
     --------------------------------------------------------------------------------
     Label            : 20140418-154800
     Timestamp        : 2014-04-18 15:48:00.439809
+    Status           : finished
     Reason           :
     Outcome          :
     Duration         : 0.216287851334
@@ -125,6 +126,20 @@ and remove tags::
 
     $ smt tag --remove barfoo
 
+During the execution of ``smt run``, the status will progress through
+``initialized``, ``pre_run``, and ``running``. Upon completion, status will
+be set to ``finished`` or ``failed``. If the status is ``failed``, the
+outcome field will reflect the return code. If you terminate the run early
+with ``control-C``, the status will be ``killed``. You can manually assign
+the status of a simulation record::
+
+    $ smt status succeeded
+    $ smt status crashed
+
+Any of the preceeding status codes may be assigned manually, but ``succeeded`` and 
+``crashed`` will never be assigned automatically, as they are somewhat in 
+the eye of the beholder.
+
 The parameter file may be in any format - it is your script which is responsible
 for reading it. However, if it is in one of the :doc:`formats that Sumatra understands <parameter_files>`
 then it is possible to modify parameter values
@@ -180,6 +195,8 @@ available by running ``smt`` by itself::
       upgrade
       sync
       migrate
+      version
+      status
 
 
 and help on a given command is available by running the command with the ``--help``

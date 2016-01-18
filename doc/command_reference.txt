@@ -438,3 +438,22 @@ version
     optional arguments:
       -h, --help  show this help message and exit
 
+status
+------
+::
+
+    usage: smt status [LABEL] STATUS
+
+    This command is used to change the status of the simulation/analysis. If LABEL
+    is omitted, the status will be changed for the most recent experiment.
+
+    positional arguments:
+      LABEL       the record to which the comment will be added
+      STATUS      a string of text, one of (u'initialized', u'pre_run',
+                  u'running', u'finished', u'failed', u'killed', 
+                  u'succeeded', u'crashed').
+
+    optional arguments:
+      -h, --help  show this help message and exit
+
+

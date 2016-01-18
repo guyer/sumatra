@@ -55,6 +55,7 @@ The list of records page contains a table with one row per computation, with the
 
 - label
 - date/time
+- status
 - reason
 - outcome
 - input data
