@@ -30,14 +30,17 @@ class DatreantRecordStore(RecordStore):
     
     JSON_PATTERN = "Sumatra.{}.json"
 
-    def __init__(self, datreant_name="__ignored__"):
-        self.datreant = dtr.Group(".smt/records")
+    def __init__(self, datreant_name="datreant://.smt/records"):
+        if datreant_name.startswith("datreant://"):
+            datreant_name = datreant_name[11:]
+        self._datreant_name = datreant_name
+        self.datreant = dtr.Group(self._datreant_name)
  
     def __str__(self):
         return "Record store using the datreant package (database file=%s)" % self.datreant.relpath
 
     def __getstate__(self):
-        return {'datreant_name': self.datreant.relpath}
+        return {'datreant_name': self._datreant_name}
 
     def __setstate__(self, state):
         self.__init__(**state)
@@ -130,7 +133,7 @@ class DatreantRecordStore(RecordStore):
 
     @classmethod
     def accepts_uri(cls, uri):
-        return uri == "@datreant@"
+        return uri[:11] == "datreant://"
 
     def backup(self):
         """

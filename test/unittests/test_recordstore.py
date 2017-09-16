@@ -366,7 +366,7 @@ class TestDatreantRecordStore(unittest.TestCase, BaseTestRecordStore):
         s = pickle.dumps(self.store)
         del self.store
         self.store = pickle.loads(s)
-        self.assertEqual(self.store._shelf_name, "test_record_store")
+        self.assertEqual(self.store._datreant_name, "test_record_store")
 
     def test_update(self):
         # because of how datreant works, setting datastore.root to 
