@@ -17,7 +17,6 @@ from sumatra.formatting import record2dict
 from sumatra.recordstore import serialization
 from ..core import component
 
-
 @component
 class DatreantRecordStore(RecordStore):
     """
@@ -69,8 +68,12 @@ class DatreantRecordStore(RecordStore):
         
         records.add(treant)
 
+    def _treants2records(self, treants):
+        jsons = treants.glob(self.JSON_PATTERN.format("*"))
+        return jsons.map(lambda leaf: serialization.decode_record(leaf.read()))
+
     def get(self, project_name, label):
-        return self._records(project_name)[label]
+        return self._treants2records(self._records(project_name)[label])[0]
 
     def list(self, project_name, tags=None):
         if self.has_project(project_name):
@@ -85,8 +88,7 @@ class DatreantRecordStore(RecordStore):
                 if len(tags) > 0:
                     # `smt list` passes an empty list to mean all tags
                     records = records[records.tags[tags]]
-            records = records.glob(self.JSON_PATTERN.format("*"))
-            records = [serialization.decode_record(r.read()) for r in records]
+            records = self._treants2records(records)
         else:
             records = []
         return records
@@ -110,7 +112,7 @@ class DatreantRecordStore(RecordStore):
     def most_recent(self, project_name):
         most_recent = None
         most_recent_timestamp = datetime.min
-        for record in self._records(project_name):
+        for record in self._treants2records(self._records(project_name)):
             if record.timestamp > most_recent_timestamp:
                 most_recent_timestamp = record.timestamp
                 most_recent = record.label
