@@ -63,7 +63,7 @@ class DatreantRecordStore(RecordStore):
             
         treant = dtr.Treant(treant=os.path.join(record.datastore.root,
                                                 record.label))
-        path = self.JSON_PATTERN.format(record.label)].make().abspath
+        path = treant[self.JSON_PATTERN.format(record.label)].make().abspath
         with open(treant[path, 'w') as f:
             f.write(serialization.encode_record(record))
         
