@@ -19,8 +19,8 @@ from glob import glob
 
 from sumatra.records import Record
 from sumatra.programs import Executable
-from sumatra.recordstore import (shelve_store, django_store, http_store,
-                                 serialization, get_record_store)
+from sumatra.recordstore import (shelve_store, django_store, http_store, 
+                                 datreant_store, serialization, get_record_store)
 from sumatra.versioncontrol import vcs_list
 import sumatra.launch
 import sumatra.datastore
@@ -348,6 +348,25 @@ class TestDjangoRecordStore(unittest.TestCase, BaseTestRecordStore):
         unpickled = pickle.loads(s)
         #assert unpickled._shelf_name == "test_record_store"
         #assert os.path.exists(unpickled._shelf_name)
+
+class TestDatreantRecordStore(unittest.TestCase, BaseTestRecordStore):
+
+    def setUp(self):
+        BaseTestRecordStore.setUp(self)
+        self.store = datreant_store.DatreantRecordStore(datreant_name="test_record_store")
+        self.project = MockProject()
+
+    def tearDown(self):
+        del self.store  # this is necessary when using the dumbdbm module, which otherwise creates files after test
+        BaseTestRecordStore.tearDown(self)
+
+    def test_record_store_is_pickleable(self):
+        import pickle
+        self.add_some_records()
+        s = pickle.dumps(self.store)
+        del self.store
+        self.store = pickle.loads(s)
+        self.assertEqual(self.store._shelf_name, "test_record_store")
 
 
 class MockResponse(object):
