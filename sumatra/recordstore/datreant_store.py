@@ -65,6 +65,7 @@ class DatreantRecordStore(RecordStore):
             
         treant = dtr.Treant(treant=os.path.join(record.datastore.root,
                                                 record.label))
+        treant.tags = record.tags
         path = treant[self.JSON_PATTERN.format(record.label)].make().abspath
         with open(path, 'w') as f:
             f.write(serialization.encode_record(record))
@@ -83,13 +84,15 @@ class DatreantRecordStore(RecordStore):
             records = self._records(project_name)
             if tags is not None:
                 # we need a tuple for "or" semantics in datreant
-                try:
-                    tags = tuple(tags)
-                except TypeError:
-                    tags = (tags,)
+                if not isinstance(tags, tuple):
+                    if isinstance(tags, list):
+                        tags = tuple(tags)
+                    else:
+                        tags = (tags,)
 
                 if len(tags) > 0:
                     # `smt list` passes an empty list to mean all tags
+                    # but datreant takes that to mean nothing matches
                     records = records[records.tags[tags]]
             records = self._treants2records(records)
         else:
