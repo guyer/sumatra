@@ -48,11 +48,11 @@ class DatreantRecordStore(RecordStore):
         return project_name in self.datreant.members.names
         
     def _records(self, project_name):
-        return self.datreant.members[project_name].members
+        return self.datreant.members[project_name][0].members
         
     def save(self, project_name, record):
         if self.has_project(project_name):
-            records = self._records[project_name]
+            records = self._records(project_name)
         else:
             records = dtr.Group(os.path.join(self.datreant.relpath, project_name))
             self.datreant.members.add(records)
