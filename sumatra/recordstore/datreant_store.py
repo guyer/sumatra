@@ -56,12 +56,15 @@ class DatreantRecordStore(RecordStore):
         if self.has_project(project_name):
             records = self._records(project_name)
         else:
-            records = dtr.Group(os.path.join(self.datreant.relpath, project_name))
+            records = dtr.Group(os.path.join(self.datreant.relpath,
+                                             project_name))
             self.datreant.members.add(records)
             records = records.members
             
-        treant = dtr.Treant(treant=os.path.join(record.label))
-        with open(treant[self.JSON_PATTERN.format(record.label)].make().abspath, 'w') as f:
+        treant = dtr.Treant(treant=os.path.join(record.datastore.root,
+                                                record.label))
+        path = self.JSON_PATTERN.format(record.label)].make().abspath
+        with open(treant[path, 'w') as f:
             f.write(serialization.encode_record(record))
         
         records.add(treant)
