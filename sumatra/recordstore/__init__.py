@@ -9,6 +9,7 @@ Sub-packages/modules
 shelve_store - provides the ShelveRecordStore class
 django_store - provides the DjangoRecordStore class (if Django is installed)
 http_store   - provides the HttpRecordStore class
+datreant_store - provides the DatreantRecordStore class (if datreant is installed)
 
 
 :copyright: Copyright 2006-2015 by the Sumatra team, see doc/authors.txt
@@ -27,6 +28,10 @@ except ImportError:
 try:
     import httplib2
     from .http_store import HttpRecordStore
+except ImportError:
+    pass
+try:
+    from .datreant_store import DatreantRecordStore
 except ImportError:
     pass
 
