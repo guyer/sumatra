@@ -28,6 +28,8 @@ class DatreantRecordStore(RecordStore):
     disadvantages are that it allows only local access and does not support
     the *smtweb* interface.
     """
+    
+    JSON_PATTERN = "Sumatra.{}.json"
 
     def __init__(self, datreant_name="__ignored__"):
         self.datreant = dtr.Group(".smt/records")
@@ -59,7 +61,7 @@ class DatreantRecordStore(RecordStore):
             records = records.members
             
         treant = dtr.Treant(treant=os.path.join(record.label))
-        with open(treant["Sumatra.{}.json".format(record.label)].make().abspath, 'w') as f:
+        with open(treant[self.JSON_PATTERN.format(record.label)].make().abspath, 'w') as f:
             f.write(serialization.encode_record(record))
         
         records.add(treant)
@@ -80,7 +82,7 @@ class DatreantRecordStore(RecordStore):
                 if len(tags) > 0:
                     # `smt list` passes an empty list to mean all tags
                     records = records[records.tags[tags]]
-            records = records.glob("Sumatra.*.json")
+            records = records.glob(self.JSON_PATTERN.format("*"))
             records = [serialization.decode_record(r.read()) for r in records]
         else:
             records = []
