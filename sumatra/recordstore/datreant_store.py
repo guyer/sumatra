@@ -77,8 +77,11 @@ class DatreantRecordStore(RecordStore):
                 except TypeError:
                     tags = (tags,)
 
-                records = records[records.tags[tags]]
-            records = [build_record(r) for r in records]
+                if len(tags) > 0:
+                    # `smt list` passes an empty list to mean all tags
+                    records = records[records.tags[tags]]
+            records = records.glob("Sumatra.*.json")
+            records = [serialization.decode_record(r.read()) for r in records]
         else:
             records = []
         return records
