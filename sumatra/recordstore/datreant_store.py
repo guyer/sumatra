@@ -116,6 +116,16 @@ class DatreantRecordStore(RecordStore):
                 most_recent = record.label
         return most_recent
 
+    def clear(self):
+        for project in self.datreant.members:
+            for record in project.members:
+                record._backend.delete()
+                project.members.remove(record)
+            project._backend.delete()
+            self.datreant.members.remove(project)
+        self.datreant._backend.delete()
+        self.datreant = None
+
     @classmethod
     def accepts_uri(cls, uri):
         return uri == "@datreant@"
