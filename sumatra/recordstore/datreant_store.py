@@ -14,7 +14,7 @@ from datetime import datetime
 import datreant.core as dtr
 from sumatra.recordstore.base import RecordStore
 from sumatra.formatting import record2dict
-from .serialization import build_record
+from sumatra.recordstore import serialization
 from ..core import component
 
 
@@ -58,10 +58,11 @@ class DatreantRecordStore(RecordStore):
             self.datreant.members.add(records)
             records = records.members
             
-        print record2dict(record)
+        treant = dtr.Treant(treant=os.path.join(record.label))
+        with open(treant["{}.sumatra.json".format(record.label)].make().abspath, 'w') as f:
+            f.write(serialization.encode_record(record))
         
-        records.add(dtr.Treant(treant=os.path.join(record.label), 
-                               categories=record2dict(record)))
+        records.add(treant)
 
     def get(self, project_name, label):
         return self._records(project_name)[label]
