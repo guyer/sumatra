@@ -103,7 +103,13 @@ class DatreantRecordStore(RecordStore):
             return []
 
     def delete(self, project_name, label):
-        self._records(project_name).remove(label)
+        records = self._records(project_name)
+        if label in records.names:
+            self._records(project_name).remove(label)
+        else:
+            # datreant doesn't care, but sumatra wants an error
+            # for a non-existent label
+            raise KeyError
 
     def delete_by_tag(self, project_name, tag):
         records = self._records(project_name)
