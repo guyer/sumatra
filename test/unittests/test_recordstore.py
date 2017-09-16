@@ -368,6 +368,14 @@ class TestDatreantRecordStore(unittest.TestCase, BaseTestRecordStore):
         self.store = pickle.loads(s)
         self.assertEqual(self.store._shelf_name, "test_record_store")
 
+    def test_update(self):
+        # because of how datreant works, setting datastore.root to 
+        # a nonexistent path doesn't work for us
+        self.add_some_records()
+        self.store.update(self.project.name, "input_datastore.root", "/new/path/to/store")
+        updated_value, = set(rec.input_datastore.root for rec in self.store.list(self.project.name))
+        self.assertEqual(updated_value, "/new/path/to/store")
+
 
 class MockResponse(object):
     def __init__(self, status):
