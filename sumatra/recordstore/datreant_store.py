@@ -59,7 +59,7 @@ class DatreantRecordStore(RecordStore):
             records = records.members
             
         treant = dtr.Treant(treant=os.path.join(record.label))
-        with open(treant["{}.sumatra.json".format(record.label)].make().abspath, 'w') as f:
+        with open(treant["Sumatra.{}.json".format(record.label)].make().abspath, 'w') as f:
             f.write(serialization.encode_record(record))
         
         records.add(treant)
