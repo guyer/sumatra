@@ -20,12 +20,17 @@ from ..core import component
 @component
 class DatreantRecordStore(RecordStore):
     """
-    Handles storage of simulation/analysis records based on the Python 
+    Handles storage of simulation/analysis records based on the Python
     :mod:`datreant` package.
 
-    The advantage of this record store is that it has no dependencies. The
-    disadvantages are that it allows only local access and does not support
-    the *smtweb* interface.
+    The advantage of this record store is that it is daemonless, has only
+    lightweight dependencies, and the records are stored in human-readable JSON,
+    maximizing portability. This store is also immune to the security and
+    long-term storage vulnerabilities of shelve/pickle.
+
+    The disadvantages are that it allows only local access, it does not support
+    the *smtweb* interface, and access can be slow compared to a centralized
+    databse.
     """
     
     JSON_PATTERN = "Sumatra.{}.json"
