@@ -32,6 +32,7 @@ install_requires = ['Django>=1.6, <1.9', 'django-tagging', 'httplib2',
 major_python_version, minor_python_version, _, _, _ = sys.version_info
 if major_python_version < 3 or (major_python_version == 3 and minor_python_version < 4):
     install_requires.append('pathlib')
+    install_requires.append('configparser')
 
 setup(
     name = "Sumatra",
@@ -63,10 +64,10 @@ setup(
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
                    'Programming Language :: Python',
-                   'Programming Language :: Python :: 2.6',
                    'Programming Language :: Python :: 2.7',
                    'Programming Language :: Python :: 3.4',
                    'Programming Language :: Python :: 3.5',
+                   'Programming Language :: Python :: 3.6',
                    'Topic :: Scientific/Engineering'],
     cmdclass = {'sdist': sdist_git},
     install_requires = install_requires,

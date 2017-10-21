@@ -20,8 +20,8 @@ standard_library.install_aliases()
 import logging
 import git
 import os
-import sys
 import shutil
+import tempfile
 from distutils.version import LooseVersion
 from configparser import NoSectionError, NoOptionError
 try:
@@ -103,23 +103,34 @@ class GitWorkingCopy(WorkingCopy):
         g = git.Git(self.path)
         return g.diff('HEAD', color='never')
 
-    def content(self, digest, file=None):
+    def reset(self):
+        """Resets all uncommitted changes since the commit. Destructive, be
+        careful with use"""
+        g = git.Git(self.path)
+        g.reset('HEAD', '--hard')
+
+    def patch(self, diff):
+        """Resets all uncommitted changes since the commit. Destructive, be
+        careful with use"""
+        assert not self.has_changed(), "Cannot patch dirty working copy"
+        # Create temp patch file
+        if diff[-1] != '\n':
+            diff = diff + '\n'
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_file:
+            temp_file.write(diff)
+            temp_file_name = temp_file.name
+        try:
+            g = git.Git(self.path)
+            g.apply(temp_file_name)
+        finally:
+            os.remove(temp_file_name)
+
+    def content(self, digest, filename):
         """Get the file content from repository."""
         repo = git.Repo(self.path)
-        curtree = repo.commit(digest).tree
-        if file is None:
-            return curtree.blobs[0].data_stream.read() # Get the latest added file content.
-        dirname, filename = os.path.split(file)
-        if dirname != '':
-            for dname in dirname.split(os.path.sep):
-                for subtree in curtree.trees:
-                    if subtree.name == dname:
-                        curtree = subtree
-                        break
-        for blob in curtree.blobs:
-            if blob.name == filename:
-                expected_encoding = sys.getfilesystemencoding()
-                file_content = blob.data_stream.read().decode(expected_encoding)
+        for _,blob in repo.index.iter_blobs():
+            if blob.name == os.path.basename(filename):
+                file_content = repo.git.show('%s:%s' %(digest, blob.path))
                 return file_content
         return 'File content not found.'
 

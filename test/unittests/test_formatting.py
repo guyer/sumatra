@@ -5,10 +5,7 @@ Unit tests for the sumatra.formatting module
 from __future__ import unicode_literals
 from builtins import object
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import tempfile
 from datetime import datetime
 import os
@@ -185,26 +182,28 @@ class TestShellFormatter(unittest.TestCase):
 class TestLaTeXFormatter(unittest.TestCase):
 
     def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
         self.record_list = [ MockRecord(), MockRecord("nobel_prize") ]
         # note that label with underscore should be escaped in LaTeX output
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
 
     def test__long(self):
         tf1 = LaTeXFormatter(self.record_list, project=MockProject())
         txt = tf1.long()
-        tmpdir = tempfile.mkdtemp()
-        with open(os.path.join(tmpdir, "test.tex"), "w") as fp:
+        with open(os.path.join(self.tmpdir, "test.tex"), "w") as fp:
             fp.write(txt)
         if get_executable("pdflatex").path == "pdflatex":  # pdflatex not found
-            raise unittest.SkipTest
+            raise unittest.SkipTest("pdflatex not found")
         else:
-            returncode, stdout, stderr = run(["pdflatex", "test.tex"], cwd=tmpdir)  # check it builds
+            returncode, stdout, stderr = run(["pdflatex", "-interaction=nonstopmode", "test.tex"], cwd=self.tmpdir)  # check it builds
             output = stdout + stderr
             if returncode != 0:
-                if "not found" in output:  # one of the required LaTeX packages is unavailable
-                    raise unittest.SkipTest
+                if "not found" in output:
+                    raise unittest.SkipTest("One of the required LaTeX packages is unavailable")
                 else:
                     self.fail(output)
-        shutil.rmtree(tmpdir)
 
 
 class TestHTMLFormatter(unittest.TestCase):

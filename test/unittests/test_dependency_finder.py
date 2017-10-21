@@ -6,10 +6,8 @@ from __future__ import unicode_literals
 from builtins import str
 from builtins import object
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
+import distutils.spawn
 import sumatra.dependency_finder as df
 import sys
 import os
@@ -35,8 +33,8 @@ class MockExecutable(object):
 class MockRExecutable(MockExecutable):
     def __init__(self, name):
         self.name = 'R'
-        rpath = '/usr/bin/Rscript'
-        if os.path.exists(rpath):
+        rpath = distutils.spawn.find_executable('Rscript')
+        if rpath is not None:
             self.path = rpath
         else:
             raise unittest.SkipTest("Can't find Rscript")

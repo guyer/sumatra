@@ -55,6 +55,8 @@ class DjangoConfiguration(object):
                                'django.contrib.contenttypes',  # needed for tagging
                                'tagging'],
             'MIDDLEWARE_CLASSES': [],
+            'READ_ONLY': 0,
+            'SERVERSIDE': 0,
         }
         self._n_databases = 0
         self.configured = False
@@ -261,8 +263,8 @@ class DjangoRecordStore(RecordStore):
             raise KeyError(label)
         return db_record.to_sumatra()
 
-    def list(self, project_name, tags=None):
-        db_records = self._manager.filter(project__id=project_name).select_related()
+    def list(self, project_name, tags=None, *args, **kwargs):
+        db_records = self._manager.filter(project__id=project_name, *args, **kwargs).select_related()
         if tags:
             if not hasattr(tags, "__len__"):
                 tags = [tags]
@@ -279,8 +281,14 @@ class DjangoRecordStore(RecordStore):
             raise Exception(errmsg)
         return records
 
-    def labels(self, project_name):
-        return [record.label for record in self._manager.filter(project__id=project_name)]
+    def labels(self, project_name, tags=None, *args, **kwargs):
+        db_records = self._manager.filter(project__id=project_name, *args, **kwargs).select_related()
+        if tags:
+            if not hasattr(tags, "__len__"):
+                tags = [tags]
+            for tag in tags:
+                db_records = db_records.filter(tags__contains=tag)
+        return [db_record.label for db_record in db_records]
 
     def delete(self, project_name, label):
         db_record = self._manager.get(label=label, project__id=project_name)

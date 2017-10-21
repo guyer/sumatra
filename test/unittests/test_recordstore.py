@@ -9,10 +9,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import os
 import sys
 import tempfile
@@ -234,6 +231,20 @@ class BaseTestRecordStore(object):
         self.add_some_tags()
         records = self.store.list(self.project.name, "tag1")
         self.assertEqual(len(records), 2)
+
+    def test_labels_without_tags_should_return_all_labels(self):
+        self.add_some_records()
+        labels = self.store.labels(self.project.name)
+        assert isinstance(labels, list), type(labels)
+        self.assertEqual(len(labels), 3)
+        self.assertIsInstance(labels[0], str)
+
+    def test_labels_for_tags_should_filter_records_appropriately(self):
+        self.add_some_records()
+        self.add_some_tags()
+        labels = self.store.labels(self.project.name, "tag1")
+        self.assertEqual(len(labels), 2)
+        self.assertIsInstance(labels[0], str)
 
     def test_delete_removes_record(self):
         self.add_some_records()

@@ -180,7 +180,7 @@ class Project(object):
     def new_record(self, parameters={}, input_data=[], script_args="",
                    executable='default', repository='default',
                    main_file='default', version='current', launch_mode='default',
-                   label=None, reason=None, timestamp_format='default'):
+                   diff='', label=None, reason=None, timestamp_format='default'):
         logger.debug("Creating new record")
         if executable == 'default':
             executable = deepcopy(self.default_executable)
@@ -193,7 +193,7 @@ class Project(object):
         if timestamp_format == 'default':
             timestamp_format = self.timestamp_format
         working_copy = repository.get_working_copy()
-        version, diff = self.update_code(working_copy, version)
+        version, diff = self.update_code(working_copy, version, diff)
         if label is None:
             label = LABEL_GENERATORS[self.label_generator]()
         record = Record(executable, repository, main_file, version, launch_mode,
@@ -202,35 +202,39 @@ class Project(object):
                         on_changed=self.on_changed,
                         input_datastore=self.input_datastore,
                         timestamp_format=timestamp_format)
+
+        self.add_record(record)
+
         if not isinstance(executable, programs.MatlabExecutable):
             record.register(working_copy)
+
         return record
 
     def launch(self, parameters={}, input_data=[], script_args="",
                executable='default', repository='default', main_file='default',
-               version='current', launch_mode='default', label=None, reason=None,
+               version='current', launch_mode='default', diff='', label=None, reason=None,
                timestamp_format='default', repeats=None):
         """Launch a new simulation or analysis."""
         record = self.new_record(parameters, input_data, script_args,
                                  executable, repository, main_file, version,
-                                 launch_mode, label, reason, timestamp_format)
-        record.run(with_label=self.data_label)
+                                 launch_mode, diff, label, reason, timestamp_format)
+        record.run(with_label=self.data_label, project=self)
         if 'matlab' in record.executable.name.lower():
             record.register(record.repository.get_working_copy())
         if repeats:
             record.repeats = repeats
-        self.add_record(record)
+        self.save_record(record)
+        logger.debug("Record saved @ completion.")
         self.save()
         return record.label
 
-    def update_code(self, working_copy, version='current'):
+    def update_code(self, working_copy, version='current', diff=''):
         """Check if the working copy has modifications and prompt to commit or revert them."""
         # we really need to extend this to the dependencies, but we need to take extra special care that the
         # code ends up in the same condition as before the run
         logger.debug("Updating working copy to use version: %s" % version)
-        diff = ''
         changed = working_copy.has_changed()
-        if version == 'current' or version == working_copy.current_version:
+        if (version == 'current' or version == working_copy.current_version) and not diff:
             if changed:
                 if self.on_changed == "error":
                     raise UncommittedModificationsError("Code has changed, please commit your changes")
@@ -238,11 +242,15 @@ class Project(object):
                     diff = working_copy.diff()
                 else:
                     raise ValueError("store-diff must be either 'error' or 'store-diff'")
-        elif changed:
-            raise UncommittedModificationsError(
-                "Code has changed. These changes will be lost when switching "
-                "to a different version, so please commit or stash your "
-                "changes and then retry.")
+        elif diff:
+            if changed:
+                raise UncommittedModificationsError(
+                    "Code has changed. These changes will be lost when switching "
+                    "to a different version, so please commit or stash your "
+                    "changes and then retry.")
+            else:
+                working_copy.use_version(version)
+                working_copy.patch(diff)
         elif version == 'latest':
             working_copy.use_latest_version()
         else:
@@ -258,15 +266,19 @@ class Project(object):
         sleep_seconds = 5
         while not success and cnt < max_tries:
             try:
-                self.record_store.save(self.name, record)
+                self.save_record(record)
                 success = True
                 self._most_recent = record.label
+                logger.debug("Created record: %s" % self.most_recent())
             except (django.db.utils.DatabaseError, sqlite3.OperationalError):
                 print("Failed to save record due to database error. Trying again in {0} seconds. (Attempt {1}/{2})".format(sleep_seconds, cnt, max_tries))
                 time.sleep(sleep_seconds)
                 cnt += 1
         if cnt == max_tries:
             print("Reached maximum number of attempts to save record. Aborting.")
+
+    def save_record(self, record):
+        self.record_store.save(self.name, record)
 
     def get_record(self, label):
         """Search for a record with the supplied label and return it if found.
@@ -290,18 +302,29 @@ class Project(object):
         self._most_recent = self.record_store.most_recent(self.name)
         return n
 
-    def find_records(self, tags=None, reverse=False):
-        records = self.record_store.list(self.name, tags)
+    def get_labels(self, tags=None, reverse=False, *args, **kwargs):
+        labels = self.record_store.labels(self.name, tags=tags, *args, **kwargs)
+        if reverse:
+            labels.reverse()
+        return labels
+
+    def find_records(self, tags=None, reverse=False, parameters=None, *args, **kwargs):
+        records = self.record_store.list(self.name, tags=tags, *args, **kwargs)
         if reverse:
             records.reverse()
+        if parameters is not None:
+            records = [rec for rec in records if len(rec.parameters.diff(parameters)[-1]) == 0]
         return records
 
     # def find_data() here?
 
-    def format_records(self, format='text', mode='short', tags=None, reverse=False):
-        records = self.find_records(tags=tags, reverse=reverse)
-        formatter = get_formatter(format)(records, project=self, tags=tags)
-        return formatter.format(mode)
+    def format_records(self, format='text', mode='short', tags=None, reverse=False, *args, **kwargs):
+        if format=='text' and mode=='short' and ('parameters' not in kwargs.keys()):
+            return '\n'.join(self.get_labels(tags=tags, reverse=reverse, *args, **kwargs))
+        else:
+            records = self.find_records(tags=tags, reverse=reverse, *args, **kwargs)
+            formatter = get_formatter(format)(records, project=self, tags=tags)
+            return formatter.format(mode)
 
     def most_recent(self):
         try:
@@ -319,17 +342,17 @@ class Project(object):
             record.outcome = comment
         else:
             record.outcome = record.outcome + "\n" + comment
-        self.record_store.save(self.name, record)
+        self.save_record(record)
 
     def add_tag(self, label, tag):
         record = self.record_store.get(self.name, label)
-        record.tags.add(tag)
-        self.record_store.save(self.name, record)
+        record.add_tag(tag)
+        self.save_record(record)
 
     def remove_tag(self, label, tag):
         record = self.record_store.get(self.name, label)
         record.tags.remove(tag)
-        self.record_store.save(self.name, record)
+        self.save_record(record)
 
     def compare(self, label1, label2, ignore_mimetypes=[], ignore_filenames=[]):
         record1 = self.record_store.get(self.name, label1)
@@ -373,9 +396,11 @@ class Project(object):
                                 repository=original.repository,
                                 version=original.version,
                                 launch_mode=original.launch_mode,
+                                diff=original.diff,
                                 label=new_label,
                                 reason="Repeat experiment %s" % original.label,
                                 repeats=original.label)
+        working_copy.reset()
         working_copy.use_version(current_version)  # ensure we switch back to the original working copy state
         return new_label, original.label
 

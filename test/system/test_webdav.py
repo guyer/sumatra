@@ -20,10 +20,7 @@ try:
     have_docker = True
 except ImportError:
     have_docker = False
-try:
-    from unittest2 import SkipTest
-except ImportError:
-    from unittest import SkipTest
+from unittest import SkipTest
 import utils
 from utils import setup, teardown as default_teardown, run_test, build_command
 
@@ -39,7 +36,7 @@ def create_script():
 
 def get_url():
     info = dkr.containers()[0]
-    assert info["Image"] == "{0}:latest".format(IMAGE)
+    assert info["Image"] == IMAGE
     host = urlparse(dkr.base_url).hostname
     return "{0}:{1}".format(host, info["Ports"][0]["PublicPort"])
 
@@ -60,7 +57,7 @@ def start_webdav_container():
     env = docker.utils.kwargs_from_env(assert_hostname=False)
     dkr = docker.Client(timeout=60, **env)
     ctr = dkr.create_container(IMAGE, command=None, hostname=None, user=None,
-                               detach=False, stdin_open=False, tty=False, mem_limit=0,
+                               detach=False, stdin_open=False, tty=False,
                                ports=[80], environment=None, dns=None, volumes=None,
                                volumes_from=None, network_disabled=False, name=None,
                                entrypoint=None, cpu_shares=None, working_dir=None)
