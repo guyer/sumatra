@@ -104,11 +104,18 @@ class DatreantRecordStore(RecordStore):
             records = []
         return records
 
-    def labels(self, project_name):
+    def labels(self, project_name, tags=None):
         if self.has_project(project_name):
-            return self._records(project_name).names
+            records = self._records(project_name)
+            if tags:
+                if not isinstance(tags, (tuple, list)):
+                    tags = (tags,)
+                lbls = records[records.tags[tuple(tags)]].names
+            else:
+                lbls = records.names
         else:
-            return []
+            lbls = []
+        return lbls
 
     def delete(self, project_name, label):
         records = self._records(project_name)
