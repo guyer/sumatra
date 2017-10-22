@@ -246,6 +246,13 @@ class BaseTestRecordStore(object):
         self.assertEqual(len(labels), 2)
         self.assertIsInstance(labels[0], str)
 
+    def test_labels_for_tags_should_filter_records_appropriately2(self):
+        self.add_some_records()
+        self.add_some_tags()
+        labels = self.store.labels(self.project.name, ["tag1", "tag2"])
+        self.assertEqual(len(labels), 2)
+        self.assertIsInstance(labels[0], str)
+
     def test_delete_removes_record(self):
         self.add_some_records()
         key = "record1"
