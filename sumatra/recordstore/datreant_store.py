@@ -67,12 +67,20 @@ class DatreantRecordStore(RecordStore):
                                              project_name))
             self.datreant.members.add(records)
             records = records.members
-            
-        treant = dtr.Treant(treant=os.path.join(record.datastore.root,
-                                                record.label))
+
+        dtrpath = record.datastore.root
+        if not dtrpath.endswith(record.label):
+            # On initialization, record.datastore.root is same
+            # as project.data_store.root.
+            # Afterwards, Record.run() appends record.label to
+            # record.datastore.root
+            dtrpath = os.path.join(dtrpath, record.label)
+        treant = dtr.Treant(treant=dtrpath)
+
         treant.tags = record.tags
-        path = treant[self.JSON_PATTERN.format(record.label)].make().abspath
-        with open(path, 'w') as f:
+
+        jsonpath = treant[self.JSON_PATTERN.format(record.label)].make().abspath
+        with open(jsonpath, 'w') as f:
             f.write(serialization.encode_record(record))
         
         records.add(treant)
