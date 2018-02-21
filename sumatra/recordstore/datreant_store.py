@@ -42,7 +42,7 @@ class DatreantRecordStore(RecordStore):
         self.datreant = dtr.Group(self._datreant_name)
  
     def __str__(self):
-        return "Record store using the datreant package (database file=%s)" % self.datreant.relpath
+        return "Record store using the datreant package (database file=%s)" % self._datreant_name
 
     def __getstate__(self):
         return {'datreant_name': self._datreant_name}
@@ -63,7 +63,7 @@ class DatreantRecordStore(RecordStore):
         if self.has_project(project_name):
             records = self._records(project_name)
         else:
-            records = dtr.Group(os.path.join(self.datreant.relpath,
+            records = dtr.Group(os.path.join(self._datreant_name,
                                              project_name))
             self.datreant.members.add(records)
             records = records.members
@@ -168,11 +168,12 @@ class DatreantRecordStore(RecordStore):
         """
         Copy the database file
         """
-        shutil.copy2(self.datreant.relpath, self.datreant.relpath + ".backup")
+        print self._datreant_name
+        shutil.copytree(self._datreant_name, self._datreant_name + ".backup")
 
     def remove(self):
         """
         Delete the database entirely.
         """
         self.backup()
-        os.remove(self.datreant.relpath)
+        shutil.rmtree(self._datreant_name)
