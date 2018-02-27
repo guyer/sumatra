@@ -136,8 +136,11 @@ def system2(cmd, cwd=None, logger=_sentinel, stdout=_sentinel, log_command=_sent
         "with open('.memory_profile', 'w') as f: "
         "    memory_usage(proc={pid}, interval={interval}, timestamps=True,"
         "                 include_children=True, multiprocess=True, stream=f)"
+        print >>sys.stderr, "memcode-b:", memcode
         memcode = memcode.format(pid=p.pid, interval=0.1)
+        print >>sys.stderr, "memcode-a:", memcode
         memcmd = 'python -c "{code}"'.format(code=memcode)
+        print >>sys.stderr, "memcmd:", memcmd
         pmem = subprocess.Popen(memcmd, cwd=cwd, close_fds=(platform.system() == 'Linux'))
 
         if(log_command):
