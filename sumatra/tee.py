@@ -131,6 +131,15 @@ def system2(cmd, cwd=None, logger=_sentinel, stdout=_sentinel, log_command=_sent
         # I have never catched "The input line is too long" (yet?)
         # cmd = quote_command(cmd)
         p = subprocess.Popen(cmd, cwd=cwd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=(platform.system() == 'Linux'))
+
+        memcode = "from memory_profiler import memory_usage;"
+        "with open('.memory_profile', 'w') as f: "
+        "    memory_usage(proc={pid}, interval={interval}, timestamps=True,"
+        "                 include_children=True, multiprocess=True, stream=f)"
+        memcode = memcode.format(pid=p.pid, interval=0.1)
+        memcmd = 'python -c "{code}"'.format(code=memcode)
+        pmem = subprocess.Popen(memcmd, cwd=cwd, close_fds=(platform.system() == 'Linux'))
+
         if(log_command):
                 mylogger("Running: %s" % cmd)
         try:
@@ -153,6 +162,7 @@ def system2(cmd, cwd=None, logger=_sentinel, stdout=_sentinel, log_command=_sent
                     if(stdout):
                             print(line, end="")
                             sys.stdout.flush()
+
             returncode = p.wait()
         except KeyboardInterrupt:
             # Popen.returncode: 
@@ -171,7 +181,9 @@ def system2(cmd, cwd=None, logger=_sentinel, stdout=_sentinel, log_command=_sent
         if not returncode == 0: # running a tool that returns non-zero? this deserves a warning
                 logging.warning("Returned: %d from: %s\nOutput %s" % (returncode, cmd, ''.join(output)))
 
-        return(returncode, output)
+        pmem.terminate()
+
+        return(returncode, output, memory)
 
 def system(cmd, cwd=None, logger=None, stdout=None, log_command=_sentinel, timing=_sentinel):
         """ System does not return a tuple """
