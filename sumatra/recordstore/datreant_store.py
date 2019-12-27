@@ -34,10 +34,11 @@ class DatreantRecordStore(RecordStore):
     """
     
     JSON_PATTERN = "Sumatra.{}.json"
+    DTR_PROTOCOL = "datreant://"
 
-    def __init__(self, datreant_name="datreant://.smt/records"):
-        if datreant_name.startswith("datreant://"):
-            datreant_name = datreant_name[11:]
+    def __init__(self, datreant_name=DTR_PROTOCOL + ".smt/records"):
+        if datreant_name.startswith(DTR_PROTOCOL):
+            datreant_name = datreant_name[len(DTR_PROTOCOL):]
         self._datreant_name = datreant_name
         self.datreant = dtr.Group(self._datreant_name)
  
@@ -162,7 +163,7 @@ class DatreantRecordStore(RecordStore):
 
     @classmethod
     def accepts_uri(cls, uri):
-        return uri[:11] == "datreant://"
+        return uri.startswith(DTR_PROTOCOL)
 
     def backup(self):
         """
