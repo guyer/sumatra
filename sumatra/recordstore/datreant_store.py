@@ -17,6 +17,11 @@ from sumatra.formatting import record2dict
 from sumatra.recordstore import serialization
 from ..core import component
 
+__all__ = ['DatreantRecordStore']
+
+JSON_PATTERN = "Sumatra.{}.json"
+DTR_PROTOCOL = "datreant://"
+
 @component
 class DatreantRecordStore(RecordStore):
     """
@@ -30,13 +35,10 @@ class DatreantRecordStore(RecordStore):
 
     The disadvantages are that it allows only local access, it does not support
     the *smtweb* interface, and access can be slow compared to a centralized
-    databse.
+    database.
     """
     
-    JSON_PATTERN = "Sumatra.{}.json"
-    DTR_PROTOCOL = "datreant://"
-
-    def __init__(self, datreant_name=DTR_PROTOCOL + ".smt/records"):
+    def __init__(self, datreant_name=DTR_PROTOCOL + "Data/"):
         if datreant_name.startswith(DTR_PROTOCOL):
             datreant_name = datreant_name[len(DTR_PROTOCOL):]
         self._datreant_name = datreant_name
@@ -80,14 +82,14 @@ class DatreantRecordStore(RecordStore):
 
         treant.tags = record.tags
 
-        jsonpath = treant[self.JSON_PATTERN.format(record.label)].make().abspath
+        jsonpath = treant[JSON_PATTERN.format(record.label)].make().abspath
         with open(jsonpath, 'w') as f:
             f.write(serialization.encode_record(record))
         
         records.add(treant)
 
     def _treants2records(self, treants):
-        jsons = treants.glob(self.JSON_PATTERN.format("*"))
+        jsons = treants.glob(JSON_PATTERN.format("*"))
         return jsons.map(lambda leaf: serialization.decode_record(leaf.read()))
 
     def get(self, project_name, label):
