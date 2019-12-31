@@ -11,13 +11,13 @@ import os
 import shutil
 from datetime import datetime
 
-import datreant.core as dtr
+import datreant as dtr
 from sumatra.recordstore.base import RecordStore
 from sumatra.formatting import record2dict
 from sumatra.recordstore import serialization
 from ..core import component
 
-__all__ = ['DatreantRecordStore']
+# __all__ = ['DatreantRecordStore']
 
 JSON_PATTERN = "Sumatra.{}.json"
 DTR_PROTOCOL = "datreant://"
@@ -42,7 +42,7 @@ class DatreantRecordStore(RecordStore):
         if datreant_name.startswith(DTR_PROTOCOL):
             datreant_name = datreant_name[len(DTR_PROTOCOL):]
         self._datreant_name = datreant_name
-        self.datreant = dtr.Group(self._datreant_name)
+        self.datreant = dtr.Treant(self._datreant_name)
  
     def __str__(self):
         return "Record store using the datreant package (database file=%s)" % self._datreant_name
@@ -54,88 +54,88 @@ class DatreantRecordStore(RecordStore):
         self.__init__(**state)
 
     def list_projects(self):
-        return self.datreant.members.names
+        records = dtr.discover(self.datreant)
+        projects = list(set(records.categories['smt_project']))
+        projects.remove(None)
+
+        return projects
 
     def has_project(self, project_name):
-        return project_name in self.datreant.members.names
-        
+        return len(self._records(project_name)) > 0
+
     def _records(self, project_name):
-        return self.datreant.members[project_name][0].members
+        records = dtr.discover(self.datreant)
+        mask = [c == project_name for c in records.categories['smt_project']]
+        return records[mask]
         
     def save(self, project_name, record):
-        if self.has_project(project_name):
-            records = self._records(project_name)
-        else:
-            records = dtr.Group(os.path.join(self._datreant_name,
-                                             project_name))
-            self.datreant.members.add(records)
-            records = records.members
-
-        dtrpath = record.datastore.root
-        if not dtrpath.endswith(record.label):
-            # On initialization, record.datastore.root is same
-            # as project.data_store.root.
-            # Afterwards, Record.run() appends record.label to
-            # record.datastore.root
-            dtrpath = os.path.join(dtrpath, record.label)
-        treant = dtr.Treant(treant=dtrpath)
+        treant = dtr.Treant(treant=self.datreant[record.label].abspath)
+        treant.categories['smt_project'] = project_name
 
         treant.tags = record.tags
 
         jsonpath = treant[JSON_PATTERN.format(record.label)].make().abspath
         with open(jsonpath, 'w') as f:
             f.write(serialization.encode_record(record))
-        
-        records.add(treant)
 
     def _treants2records(self, treants):
         jsons = treants.glob(JSON_PATTERN.format("*"))
         return jsons.map(lambda leaf: serialization.decode_record(leaf.read()))
 
     def get(self, project_name, label):
-        return self._treants2records(self._records(project_name)[label])[0]
+        treant = self.datreant[label]
+        if treant.exists:
+            treant = dtr.Treant(treant)
+        if (not treant.exists
+            or treant.categories['smt_project'] != project_name):
+            errstr = "Record {} is not in project {}".format(label,
+                                                             project_name)
+            raise IndexError(errstr)
+        return self._treants2records(treant)[0]
 
     def list(self, project_name, tags=None):
-        if self.has_project(project_name):
-            records = self._records(project_name)
-            if tags is not None:
-                # we need a tuple for "or" semantics in datreant
-                if not isinstance(tags, tuple):
-                    if isinstance(tags, list):
-                        tags = tuple(tags)
-                    else:
-                        tags = (tags,)
+        records = self._records(project_name)
+        if tags is not None:
+            # we need a tuple for "or" semantics in datreant
+            if not isinstance(tags, tuple):
+                if isinstance(tags, list):
+                    tags = tuple(tags)
+                else:
+                    tags = (tags,)
 
-                if len(tags) > 0:
-                    # `smt list` passes an empty list to mean all tags
-                    # but datreant takes that to mean nothing matches
-                    records = records[records.tags[tags]]
-            records = self._treants2records(records)
-        else:
-            records = []
+            if len(tags) > 0:
+                # `smt list` passes an empty list to mean all tags
+                # but datreant takes that to mean nothing matches
+                records = records[records.tags[tags]]
+        records = self._treants2records(records)
+
         return records
 
     def labels(self, project_name, tags=None):
-        if self.has_project(project_name):
-            records = self._records(project_name)
-            if tags:
-                if not isinstance(tags, (tuple, list)):
-                    tags = (tags,)
-                lbls = records[records.tags[tuple(tags)]].names
-            else:
-                lbls = records.names
+        records = self._records(project_name)
+        if tags:
+            if not isinstance(tags, (tuple, list)):
+                tags = (tags,)
+            lbls = records[records.tags[tuple(tags)]].names
         else:
-            lbls = []
+            lbls = records.names
+
         return lbls
 
     def delete(self, project_name, label):
-        records = self._records(project_name)
-        if label in records.names:
-            self._records(project_name).remove(label)
-        else:
+        record = self.datreant[label]
+        if not record.exists:
             # datreant doesn't care, but sumatra wants an error
             # for a non-existent label
             raise KeyError
+
+        record = dtr.Treant(record)
+        if record.categories['smt_project'] != project_name:
+            # This will never fail, as we only put one project in the
+            # Data/ directory, but fail if the project_name is wrong
+            raise KeyError
+
+        shutil.rmtree(record._treantdir)
 
     def delete_by_tag(self, project_name, tag):
         records = self._records(project_name)
@@ -153,16 +153,6 @@ class DatreantRecordStore(RecordStore):
                 most_recent = record.label
         return most_recent
 
-    def clear(self):
-        for project in self.datreant.members:
-            for record in project.members:
-                record._backend.delete()
-                project.members.remove(record)
-            project._backend.delete()
-            self.datreant.members.remove(project)
-        self.datreant._backend.delete()
-        self.datreant = None
-
     @classmethod
     def accepts_uri(cls, uri):
         return uri.startswith(DTR_PROTOCOL)
@@ -171,7 +161,6 @@ class DatreantRecordStore(RecordStore):
         """
         Copy the database file
         """
-        print self._datreant_name
         shutil.copytree(self._datreant_name, self._datreant_name + ".backup")
 
     def remove(self):
