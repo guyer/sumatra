@@ -64,7 +64,7 @@ class DatreantRecordStore(RecordStore):
         return len(self._records(project_name)) > 0
 
     def _records(self, project_name):
-        records = dtr.discover(self.datreant)
+        records = dtr.Bundle(self.datreant.children().abspaths)
         mask = [c == project_name for c in records.categories['smt_project']]
         return records[mask]
         
