@@ -428,8 +428,11 @@ def run(argv):
     if args.tag:
         project.add_tag(run_label, args.tag)
     if os.path.exists('.smt'):
+        # don't just append because we don't know whether file ends with \n
+        with open('.smt/labels', 'r') as f:
+            labels = list(f)
         with open('.smt/labels', 'w') as f:
-            f.write('\n'.join(project.get_labels()))
+            f.write(labels + [run_label + '\n'])
 
 
 def list(argv):  # add 'report' and 'log' as aliases
