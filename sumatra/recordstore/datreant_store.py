@@ -41,7 +41,7 @@ class DatreantRecordStore(RecordStore):
     def __init__(self, datreant_name=DTR_PROTOCOL + "Data/"):
         if datreant_name.startswith(DTR_PROTOCOL):
             datreant_name = datreant_name[len(DTR_PROTOCOL):]
-        self._datreant_name = datreant_name
+        self._datreant_name = os.path.join("/tmp", datreant_name)
         self.datreant = dtr.Treant(self._datreant_name)
  
     def __str__(self):
